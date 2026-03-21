@@ -1,31 +1,108 @@
 ﻿<Window x:Class="FinanceTracker.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:FinanceTracker"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="1280" Width="1920">
-    <Grid>
-        <Grid>
-            <Ellipse x:Name="elps3" Stroke="#F4F7F6" Margin="83,-121,688,-73" Fill="#FF62F5C4"/>
-            <Ellipse x:Name="elps3_Copia" Stroke="#F4F7F6" Margin="940,-438,-248,-243" Fill="#FF62F5C4"/>
-            <Ellipse x:Name="elps2" Stroke="#F4F7F6" Margin="-342,-121,852,-52" Fill="#FFE4E6E5"/>
-            <Ellipse x:Name="elps2_Copia" Stroke="#F4F7F6" Margin="486,-40,366,-215" Fill="#FFE4E6E5"/>
-            <Ellipse x:Name="elps1" Stroke="#F4F7F6" Margin="-122,263,633,-141" Fill="#FFF4F7F6"/>
-            <Ellipse x:Name="elps1_Copia" Stroke="#F4F7F6" Margin="721,75,68,-334" Fill="#FFF4F7F6"/>
+        Title="MainWindow"
+        WindowState="Maximized"
+        Background="#F4F7F6">
 
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1920" Height="1280">
 
+            <!-- SFONDO -->
+            <Canvas>
 
+                <Ellipse Fill="#FF62F5C4" Width="1100" Height="1100" Canvas.Left="80" Canvas.Top="-120"/>
+                <Ellipse Fill="#FF62F5C4" Width="1536" Height="1318" Canvas.Left="720" Canvas.Top="128"/>
 
-            <TextBlock x:Name="txt_welcome" HorizontalAlignment="Left" Margin="152,192,0,0" TextWrapping="Wrap" Text="Welcome!" VerticalAlignment="Top" Height="206" Width="639" FontFamily="Segoe UI Black" Foreground="#FF2ECC71" FontSize="120"/>
-            <TextBlock x:Name="txt_info" HorizontalAlignment="Left" Margin="152,333,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="618" Width="746" FontFamily="Segoe UI Black" Foreground="#FF23A95C" FontSize="80"><Run Language="it-it" Text="To start please complete the form"/><LineBreak/><Run Language="it-it"/></TextBlock>
-            <TextBox HorizontalAlignment="Left" Margin="1073,456,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="746" Height="90"/>
+                <Ellipse Fill="#FFE4E6E5" Width="1400" Height="1400" Canvas.Left="-300" Canvas.Top="-120"/>
+                <Ellipse Fill="#FFE4E6E5" Width="900" Height="900" Canvas.Left="776" Canvas.Top="310"/>
 
+                <Ellipse Fill="#FFF4F7F6" Width="1000" Height="1320" Canvas.Left="-120" Canvas.Top="260"/>
+                <Ellipse Fill="#FFF4F7F6" Width="900" Height="900" Canvas.Left="600" Canvas.Top="546"/>
 
+            </Canvas>
 
+            <!-- CONTENUTO -->
+            <Grid x:Name="_loginGrid" Background="#00000000">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- TESTO -->
+                <StackPanel Grid.Column="0" Margin="150,180,50,0" MaxWidth="750">
+                    <TextBlock Text="Welcome!"
+                               FontSize="140"
+                               FontWeight="Bold"
+                               Foreground="#2ECC71"/>
+                    <TextBlock Text="To start please complete the form"
+                               FontSize="65"
+                               Foreground="#23A95C"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- CARD LOGIN -->
+                <Border Grid.Column="1" Width="550"
+                        Padding="50"
+                        Background="White"
+                        CornerRadius="25"
+                        VerticalAlignment="Center"
+                        Margin="0,0,150,0">
+
+                    <!-- Ombra semplice -->
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="25"
+                                          ShadowDepth="5"
+                                          Opacity="0.2"/>
+                    </Border.Effect>
+
+                    <StackPanel>
+
+                        <TextBlock Text="Login"
+                                   FontSize="50"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,40"
+                                   Foreground="#333"/>
+
+                        <!-- Nome -->
+                        <TextBlock Text="Nome"
+                                   FontSize="22"
+                                   Foreground="#666"/>
+
+                        <TextBox x:Name="_txtboxname" Height="65"
+                                 Margin="0,8,0,25"
+                                 FontSize="22"
+                                 Padding="12"
+                                 Background="#FAFAFA"
+                                 BorderBrush="#DDD"
+                                 BorderThickness="1"/>
+
+                        <!-- Cognome -->
+                        <TextBlock Text="Cognome"
+                                   FontSize="22"
+                                   Foreground="#666"/>
+
+                        <TextBox x:Name="_txtboxsurname" Height="65"
+                                 Margin="0,8,0,35"
+                                 FontSize="22"
+                                 Padding="12"
+                                 Background="#FAFAFA"
+                                 BorderBrush="#DDD"
+                                 BorderThickness="1"/>
+
+                        <!-- Bottone -->
+                        <Button Content="Continua"
+                                Height="70"
+                                FontSize="24"
+                                Background="#2ECC71"
+                                Foreground="White"
+                                BorderThickness="0" Click="Button_Click"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
         </Grid>
-
-
-    </Grid>
+    </Viewbox>
 </Window>
