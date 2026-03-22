@@ -17,6 +17,8 @@ namespace FinanceTracker
     /// </summary>
     public partial class MainWindow : Window
     {
+        decimal bal = 0;
+
         string name;
         string surname;
         string PathUserData = @".\Data\user_data.txt";
@@ -67,9 +69,11 @@ namespace FinanceTracker
             {
                 case true:
                     _loginGrid.Visibility = Visibility.Visible;
+                    _pageGrid.Visibility = Visibility.Hidden;
                     break;
                 case false:
                     _loginGrid.Visibility = Visibility.Hidden;
+                    _pageGrid.Visibility = Visibility.Visible;
                     break;
             }
         }
