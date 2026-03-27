@@ -22,7 +22,7 @@
         </Canvas>
 
         <!-- Overlay content: login and page grids. They stretch and are positioned using alignment rather than fixed sizes. -->
-        <Grid x:Name="_loginGrid" d:IsHidden="True" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Grid x:Name="_loginGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <!-- CONTENUTO -->
             <Grid Background="#00000000">
                 <Grid.ColumnDefinitions>
@@ -91,6 +91,20 @@
                                 BorderBrush="#DDD"
                                 BorderThickness="1"/>
 
+                        <!-- Saldo iniziale -->
+                        <TextBlock Text="Saldo iniziale"
+                                   FontSize="22"
+                                   Foreground="#666"/>
+
+                        <TextBox x:Name="_txtSaldo" Height="65"
+                                 Margin="0,8,0,35"
+                                 FontSize="22"
+                                 Padding="12"
+                                 Background="#FAFAFA"
+                                 BorderBrush="#DDD"
+                                 BorderThickness="1"
+                                 Text=""/>
+
                         <!-- Bottone -->
                         <Button Content="Continua"
                                 Height="70"
@@ -106,7 +120,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="_pageGrid">
+        <Grid x:Name="_pageGrid" d:IsHidden="True">
 
             <!-- SFONDO -->
             <Canvas>
@@ -149,7 +163,7 @@
                        Foreground="#666"
                        HorizontalAlignment="Right"/>
 
-                    <TextBlock x:Name="_txtSaldo"
+                    <TextBlock x:Name="_txtboxbalance"
                        Text="€ 0.00"
                        FontSize="60"
                        FontWeight="Bold"
