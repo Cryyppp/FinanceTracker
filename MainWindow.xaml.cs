@@ -18,15 +18,18 @@ namespace FinanceTracker
     /// </summary>
     public partial class MainWindow : Window
     {
-
+        Stack<Item> MonthTransaction = new Stack<Item>();
+        Stack<Income> MonthIncome = new Stack<Income>();
+        Stack<Subscription> NearRenewals = new Stack<Subscription>();
+        List<Subscription> Subscription = new List<Subscription>();
         decimal bal = 0.00M;
         string name;
         string surname;
         string PathUserData = @"../../../Data/UserData.txt";
         public MainWindow()
         {
-
             InitializeComponent();
+            _expensesBox.Visibility = Visibility.Hidden;
             Task.Run(async () => await BackGround());
             if (!File.Exists(PathUserData) || File.ReadAllLines(PathUserData).Count() == 0)
             {
@@ -129,6 +132,43 @@ namespace FinanceTracker
                 await Dispatcher.InvokeAsync(UpdateBal);
                 await Task.Delay(1000);
             }
+        }
+
+        private void BtnSeeMore_Click(object sender, RoutedEventArgs e)
+        {
+            _expensesBox.Visibility = Visibility.Visible;
+            Button btn = sender as Button;
+            string expenseInfo = btn.Name.ToString();
+            switch(expenseInfo)
+            {
+                case "_btnExpences":
+                    break;
+                case "_btnIncome":
+                    break;
+                case "_btnRenewals":
+                    break;
+                case "_btnSubscription":
+                    ShowAllSubscriptions();
+                    break;
+            }
+        }
+
+        private void ShowAllSubscriptions()
+        {
+            _itemsList.ItemsSource = Subscription;
+            _viewMoreGrid.Visibility = Visibility.Visible;
+            List<Item> items = new List<Item>()
+            {
+                new Subscription("Netflix", "Abbonamento", DateTime.Today, 12.99m),
+                new Subscription("Spotify", "Musica", DateTime.Today, 9.99m)
+            };
+
+            _itemsList.ItemsSource = items;
+        }
+
+        private void _btnClose_Click(object sender, RoutedEventArgs e)
+        {
+            _expensesBox.Visibility = Visibility.Hidden;
         }
     }
 }
