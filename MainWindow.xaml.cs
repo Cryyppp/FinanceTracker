@@ -18,28 +18,56 @@ namespace FinanceTracker
     /// </summary>
     public partial class MainWindow : Window
     {
-        Stack<Item> MonthTransaction = new Stack<Item>();
-        Stack<Income> MonthIncome = new Stack<Income>();
-        Stack<Subscription> NearRenewals = new Stack<Subscription>();
-        List<Subscription> Subscription = new List<Subscription>();
+        List<Item> ListAllTransaction = new List<Item>();
+        List<Income> ListMonthIncome = new List<Income>();
+        List<Subscription> ListNearRenewals = new List<Subscription>();
+        List<Subscription> ListSubscription = new List<Subscription>();
+        List<Item> MonthTransaction = new List<Item>();
+
+        decimal monthlySpent = 0.00M;
         decimal bal = 0.00M;
         string name;
         string surname;
         string PathUserData = @"../../../Data/UserData.txt";
+        string PathSubsciptionData = @"../../../Data/SubscriptionData.txt";
+        string PathActivityData = @"../../../Data/ActivityData.txt";
         public MainWindow()
         {
             InitializeComponent();
+
+            ListSubscription.Add(new Subscription("Spotify", "Spotify renwal", DateTime.Today.AddDays(5), 12.99m));
+            ListSubscription.Add(new Subscription("Youtube", "Spotify", DateTime.Today.AddDays(19), 12.99m));
+            ListSubscription.Add(new Subscription("Netflix", "Netflix renwal", DateTime.Today, 12.99m));
+            ListSubscription.Add(new Subscription("Amazon Prime", "Amazon Prime renwal", DateTime.Today.AddDays(10), 12.99m));
+            ListSubscription.Add(new Subscription("Disney+", "Disney+ renwal", DateTime.Today.AddDays(15), 12.99m));
+            ListSubscription.Add(new Subscription("HBO Max", "HBO Max renwal", DateTime.Today.AddDays(7), 12.99m));
+            ListSubscription.Add(new Subscription("Apple Music", "Apple Music renwal", DateTime.Today.AddDays(3), 12.99m));
+            ListSubscription.Add(new Subscription("Google One", "Google One renwal", DateTime.Today.AddDays(12), 12.99m));
+            ListSubscription.Add(new Subscription("Dropbox", "Dropbox renwal", DateTime.Today.AddDays(8), 12.99m));
+
+
             _expensesBox.Visibility = Visibility.Hidden;
-            Task.Run(async () => await BackGround());
+
             if (!File.Exists(PathUserData) || File.ReadAllLines(PathUserData).Count() == 0)
             {
                 using StreamWriter sw = new StreamWriter(PathUserData);
                 sw.Close();
+                try
+                {
+                    StreamWriter swSub = new StreamWriter(PathSubsciptionData);
+                    swSub.Close();
+                    StreamWriter swAct = new StreamWriter(PathActivityData);
+                    swAct.Close();
+                } catch (Exception ex)
+                {
+                    MessageBox.Show($"An error occurred while initializing data files: {ex.Message}");
+                }
                 ShowLogin(true);
             }
             else
             {
                 ShowLogin(false);
+                Task.Run(async () => await BackGround());
             }
             LoadData();
         }
@@ -48,7 +76,7 @@ namespace FinanceTracker
         {
             name = _txtboxname.Text;
             surname = _txtboxsurname.Text;
-            bal = decimal.Parse(_txtboxbalance.Text);
+            bal = decimal.Parse(_txtSaldo.Text);
 
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(surname))
             {
@@ -72,7 +100,7 @@ namespace FinanceTracker
                 }
             }
             LoadData();
-
+            Task.Run(async () => await BackGround());
         }
         private void ShowLogin(bool var)
         {
@@ -123,6 +151,8 @@ namespace FinanceTracker
             {
                 _txtboxbalance.Foreground = Brushes.Green;
             }
+            _txtSubsription.Text = ListSubscription.Count.ToString();
+            _txtNearRenwals.Text = ListNearRenewals.Count.ToString();
         }
 
         private async Task BackGround()
@@ -130,7 +160,46 @@ namespace FinanceTracker
             while (true)
             {
                 await Dispatcher.InvokeAsync(UpdateBal);
-                await Task.Delay(1000);
+                await Dispatcher.InvokeAsync(CheckRenewals);
+                await Dispatcher.InvokeAsync(CheckMonthlySpent);
+                ListAllTransaction.Clear();
+                ListAllTransaction.AddRange(ListMonthIncome);
+                ListAllTransaction.AddRange(ListSubscription);
+            }
+
+        }
+
+        private async Task CheckMonthlySpent()
+        {
+            DateTime today = DateTime.Today;
+            foreach (Item item in ListSubscription)
+            {
+                if (today.Date.Month == item.Date.Month - 1  && !MonthTransaction.Contains(item))
+                {
+                    MonthTransaction.Add(item);
+                    monthlySpent += item.Price;
+                }
+            }
+            _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
+            _txtMonthTransaction.Foreground = Brushes.Red;
+
+        }
+
+        private void CheckRenewals()
+        {
+            ListNearRenewals.Clear();
+            DateTime today = DateTime.Today;
+            foreach (Subscription sub in ListSubscription)
+            {
+                if ((sub.Date - today).TotalDays <= 14 && (sub.Date - today).TotalDays >= 0)
+                {
+                    if(sub.Date == today)
+                    {
+                        bal -= sub.Price;
+                        sub.Date = DateTime.Today.AddMonths(1);
+                    }
+                    ListNearRenewals.Add(sub);
+                }
             }
         }
 
@@ -142,10 +211,12 @@ namespace FinanceTracker
             switch(expenseInfo)
             {
                 case "_btnExpences":
+                    ShowExpences();
                     break;
                 case "_btnIncome":
                     break;
-                case "_btnRenewals":
+                case "_btnRenewal":
+                    ShowAllRenwals();
                     break;
                 case "_btnSubscription":
                     ShowAllSubscriptions();
@@ -153,22 +224,31 @@ namespace FinanceTracker
             }
         }
 
+        private void ShowExpences()
+        {
+            List<Item> TmonthTransaction = MonthTransaction.OrderByDescending(time => time.Date.Date).ToList();
+            _itemsList.ItemsSource = TmonthTransaction;
+            _viewMoreGrid.Visibility = Visibility.Visible;
+        }
+        private void ShowAllRenwals()
+        {
+
+            List<Subscription> Tnearest = ListNearRenewals.OrderBy(time => time.Date.Date).ToList();
+            
+            _itemsList.ItemsSource = Tnearest;
+            _viewMoreGrid.Visibility = Visibility.Visible;
+        }
+
         private void ShowAllSubscriptions()
         {
-            _itemsList.ItemsSource = Subscription;
+            _itemsList.ItemsSource = ListSubscription;
             _viewMoreGrid.Visibility = Visibility.Visible;
-            List<Item> items = new List<Item>()
-            {
-                new Subscription("Netflix", "Abbonamento", DateTime.Today, 12.99m),
-                new Subscription("Spotify", "Musica", DateTime.Today, 9.99m)
-            };
-
-            _itemsList.ItemsSource = items;
         }
 
         private void _btnClose_Click(object sender, RoutedEventArgs e)
         {
             _expensesBox.Visibility = Visibility.Hidden;
+            _itemsList.ItemsSource = null;
         }
     }
 }

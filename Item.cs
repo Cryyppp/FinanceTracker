@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Text;
 using System.Windows.Navigation;
 
@@ -12,10 +13,14 @@ namespace FinanceTracker
         public DateTime Date { get; set; }
         public decimal Price { get; set; }
         public bool Payed { get; set; }
+        private static int idCounter = 0;
+        public int Id { get; set; }
 
 
         public Item(string name, string description, DateTime date, decimal price)
         {
+            idCounter++;
+            Id = idCounter;
             this.Name = name;
             this.Description = description;
             this.Date = date;

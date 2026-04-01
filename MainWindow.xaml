@@ -120,7 +120,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="_pageGrid">
+        <Grid x:Name="_pageGrid" d:IsHidden="True">
 
             <!-- SFONDO -->
             <Canvas>
@@ -181,7 +181,7 @@
                     <Border Background="White" CornerRadius="20" Margin="10" Padding="20" MinHeight="140">
                         <StackPanel>
                             <TextBlock Text="Spesi questo mese" FontSize="20"/>
-                            <TextBlock Text="€ 0.00" FontSize="35" FontWeight="Bold"/>
+                            <TextBlock x:Name="_txtMonthTransaction" Text="€ 0.00" FontSize="35" FontWeight="Bold"/>
                             <Button x:Name="_btnExpences" Content="Vedi di più"
                                     Height="40"
                                     Width="140"
@@ -215,7 +215,7 @@
                     <Border Background="White" CornerRadius="20" Margin="10" Padding="20" MinHeight="140">
                         <StackPanel>
                             <TextBlock Text="Rinnovi a breve" FontSize="20"/>
-                            <TextBlock Text="0" FontSize="35" FontWeight="Bold"/>
+                            <TextBlock x:Name="_txtNearRenwals" Text="0" FontSize="35" FontWeight="Bold"/>
                             <Button x:Name="_btnRenewal" Content="Vedi di più"
                                     Height="40"
                                     Width="140"
@@ -232,7 +232,7 @@
                     <Border Background="White" CornerRadius="20" Margin="10" Padding="20" MinHeight="140">
                         <StackPanel>
                             <TextBlock Text="Totale abbonamenti" FontSize="20"/>
-                            <TextBlock Text="0" FontSize="35" FontWeight="Bold"/>
+                            <TextBlock x:Name="_txtSubsription" Text="0" FontSize="35" FontWeight="Bold"/>
                             <Button x:Name="_btnSubscription" Content="Vedi di più"
                                     Height="40"
                                     Width="140"
@@ -315,7 +315,7 @@
             </StackPanel>
 
         </Grid>
-        <Grid x:Name="_viewMoreGrid" d:IsHidden="True">
+        <Grid x:Name="_viewMoreGrid">
 
             <Border x:Name="_expensesBox" Background="#7F000000">
                 <Grid>
@@ -370,12 +370,12 @@
            Foreground="#777"
            Margin="0,5,0,0"/>
 
-                                                        <TextBlock Text="{Binding Date, StringFormat=Data: {0:dd/MM/yyyy}}"
+                                                        <TextBlock Text="{Binding Date, StringFormat=Prossimo rinnovo: {0:dd/MM/yyyy}}"
            FontSize="14"
            Foreground="#999"
            Margin="0,5,0,0"/>
 
-                                                        <TextBlock Grid.Column="1"
+                                                        <TextBlock x:Name="_txtPrice" Grid.Column="1"
            Text="{Binding Price, StringFormat=€ {0:F2}}"
            FontSize="18"
            FontWeight="Bold"
