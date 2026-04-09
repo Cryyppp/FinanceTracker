@@ -1,67 +1,39 @@
 ﻿using System.IO;
-using System.Text;
-using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace FinanceTracker
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         List<Item> ListAllTransaction = new List<Item>();
         List<Income> ListMonthIncome = new List<Income>();
         List<Subscription> ListNearRenewals = new List<Subscription>();
         List<Subscription> ListSubscription = new List<Subscription>();
+        List<Expense> ListExpenses = new List<Expense>();
         List<Item> MonthTransaction = new List<Item>();
 
         decimal monthlySpent = 0.00M;
         decimal bal = 0.00M;
         string name;
         string surname;
+
         string PathUserData = @"../../../Data/UserData.txt";
         string PathSubsciptionData = @"../../../Data/SubscriptionData.txt";
         string PathActivityData = @"../../../Data/ActivityData.txt";
+
         public MainWindow()
         {
             InitializeComponent();
 
-            ListSubscription.Add(new Subscription("Spotify", "Spotify renwal", DateTime.Today.AddDays(5), 12.99m));
-            ListSubscription.Add(new Subscription("Youtube", "Spotify", DateTime.Today.AddDays(19), 12.99m));
-            ListSubscription.Add(new Subscription("Netflix", "Netflix renwal", DateTime.Today, 12.99m));
-            ListSubscription.Add(new Subscription("Amazon Prime", "Amazon Prime renwal", DateTime.Today.AddDays(10), 12.99m));
-            ListSubscription.Add(new Subscription("Disney+", "Disney+ renwal", DateTime.Today.AddDays(15), 12.99m));
-            ListSubscription.Add(new Subscription("HBO Max", "HBO Max renwal", DateTime.Today.AddDays(7), 12.99m));
-            ListSubscription.Add(new Subscription("Apple Music", "Apple Music renwal", DateTime.Today.AddDays(3), 12.99m));
-            ListSubscription.Add(new Subscription("Google One", "Google One renwal", DateTime.Today.AddDays(12), 12.99m));
-            ListSubscription.Add(new Subscription("Dropbox", "Dropbox renwal", DateTime.Today.AddDays(8), 12.99m));
+            bool isSubDataEmpty = !File.Exists(PathSubsciptionData) || File.ReadAllLines(PathSubsciptionData).Length == 0;
 
-
-            _expensesBox.Visibility = Visibility.Hidden;
-
-            if (!File.Exists(PathUserData) || File.ReadAllLines(PathUserData).Count() == 0)
+            if (!File.Exists(PathUserData) || File.ReadAllLines(PathUserData).Length == 0)
             {
-                using StreamWriter sw = new StreamWriter(PathUserData);
-                sw.Close();
-                try
-                {
-                    StreamWriter swSub = new StreamWriter(PathSubsciptionData);
-                    swSub.Close();
-                    StreamWriter swAct = new StreamWriter(PathActivityData);
-                    swAct.Close();
-                } catch (Exception ex)
-                {
-                    MessageBox.Show($"An error occurred while initializing data files: {ex.Message}");
-                }
+                File.WriteAllText(PathUserData, "");
+                File.WriteAllText(PathSubsciptionData, "");
+                File.WriteAllText(PathActivityData, "");
                 ShowLogin(true);
             }
             else
@@ -69,117 +41,207 @@ namespace FinanceTracker
                 ShowLogin(false);
                 Task.Run(async () => await BackGround());
             }
+
             LoadData();
+            LoadTransactions();
+
+            if (isSubDataEmpty)
+            {
+                AddTransaction("Gas", "Car fuel", DateTime.Today.AddDays(-1), 50.00M);
+                AddSubscription("Netflix", "Streaming service", DateTime.Today.AddDays(10), 15.99M, true);
+            }
+
+            _expensesBox.Visibility = Visibility.Hidden;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        // =========================
+        // USER DATA
+        // =========================
+        private void SaveUserData()
         {
-            name = _txtboxname.Text;
-            surname = _txtboxsurname.Text;
-            bal = decimal.Parse(_txtSaldo.Text);
-
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(surname))
+            try
             {
-                MessageBox.Show("Please enter both name and surname.");
-                return;
+                File.WriteAllText(PathUserData, $"{name};{surname};{bal}");
             }
-            else
+            catch (Exception ex)
             {
-                try
-                {
-                    string userData = $"{name};{surname};{bal}";
-                    StreamWriter sw = new StreamWriter(PathUserData, true);
-                    sw.Write(userData);
-                    sw.Close();
-                    ShowLogin(false);
-
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"An error occurred while saving user data: {ex.Message}");
-                }
-            }
-            LoadData();
-            Task.Run(async () => await BackGround());
-        }
-        private void ShowLogin(bool var)
-        {
-            switch (var)
-            {
-                case true:
-                    _loginGrid.Visibility = Visibility.Visible;
-                    _pageGrid.Visibility = Visibility.Hidden;
-                    break;
-                case false:
-                    _loginGrid.Visibility = Visibility.Hidden;
-                    _pageGrid.Visibility = Visibility.Visible;
-                    break;
+                MessageBox.Show($"Error saving user data: {ex.Message}");
             }
         }
+
         private void LoadData()
         {
             try
             {
-                if (File.Exists(PathUserData) && File.ReadAllLines(PathUserData).Count() > 0)
+                if (File.Exists(PathUserData))
                 {
-                    string[] userData = File.ReadAllLines(PathUserData);
-                    string[] userInfo = userData[0].Split(';');
+                    string[] userInfo = File.ReadAllLines(PathUserData)[0].Split(';');
+
                     name = userInfo[0];
                     surname = userInfo[1];
                     bal = decimal.Parse(userInfo[2]);
+
                     _txtName.Text = $"{name} {surname}";
                     _txtboxbalance.Text = $"€ {bal:F2}";
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show($"An error occurred while loading user data: {ex.Message}");
+                MessageBox.Show("Error loading user data.");
             }
         }
+
+        // =========================
+        // TRANSACTIONS
+        // =========================
+        private void LoadTransactions()
+        {
+            if (!File.Exists(PathSubsciptionData)) return;
+
+            foreach (string line in File.ReadAllLines(PathSubsciptionData))
+            {
+                string[] data = line.Split(';');
+
+                if (data.Length >= 5 && data[0] == "Transaction")
+                {
+                    ListExpenses.Add(new Expense(
+                        data[1],
+                        data[2],
+                        DateTime.Parse(data[3]),
+                        decimal.Parse(data[4])
+                    ));
+                }
+                else if (data.Length == 6 && data[0] == "Subscription")
+                {
+                    ListSubscription.Add(new Subscription(
+                        data[1],
+                        data[2],
+                        DateTime.Parse(data[3]),
+                        decimal.Parse(data[4]),
+                        bool.Parse(data[5])
+                    ));
+                }
+            }
+        }
+
+        private void AddTransaction(string name, string description, DateTime date, decimal price)
+        {
+            Expense exp = new Expense(name, description, date, price);
+            ListExpenses.Add(exp);
+
+            bal -= price; // 🔥 aggiorna saldo
+
+            File.AppendAllText(PathSubsciptionData,
+                $"Transaction;{exp.Name};{exp.Description};{exp.Date};{exp.Price}\n");
+
+            SaveUserData();
+        }
+
+        private void AddSubscription(string name, string description, DateTime date, decimal price, bool payed)
+        {
+            Subscription sub = new Subscription(name, description, date, price, payed);
+            ListSubscription.Add(sub);
+
+            File.AppendAllText(PathSubsciptionData,
+                $"Subscription;{sub.Name};{sub.Description};{sub.Date};{sub.Price};{sub.Payed}\n");
+        }
+
+        // =========================
+        // UI + LOGIN
+        // =========================
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            name = _txtboxname.Text;
+            surname = _txtboxsurname.Text;
+
+            if (!decimal.TryParse(_txtSaldo.Text, out bal))
+            {
+                MessageBox.Show("Invalid balance.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(surname))
+            {
+                MessageBox.Show("Insert name and surname.");
+                return;
+            }
+
+            SaveUserData();
+
+            ShowLogin(false);
+            LoadData();
+            Task.Run(async () => await BackGround());
+        }
+
+        private void ShowLogin(bool show)
+        {
+            _loginGrid.Visibility = show ? Visibility.Visible : Visibility.Hidden;
+            _pageGrid.Visibility = show ? Visibility.Hidden : Visibility.Visible;
+        }
+
         private void UpdateBal()
         {
             _txtboxbalance.Text = $"€ {bal:F2}";
-            if (bal < 0)
-            {
-                _txtboxbalance.Foreground = Brushes.Red;
-            }
-            else if (bal == 0)
-            {
-                _txtboxbalance.Foreground = Brushes.Black;
-            }
-            else
-            {
-                _txtboxbalance.Foreground = Brushes.Green;
-            }
+            _txtboxbalance.Foreground = bal < 0 ? Brushes.Red :
+                                       bal > 0 ? Brushes.Green :
+                                       Brushes.Black;
+
             _txtSubsription.Text = ListSubscription.Count.ToString();
             _txtNearRenwals.Text = ListNearRenewals.Count.ToString();
+
+            SaveUserData(); // 🔥 sempre sincronizzato
         }
 
+        // =========================
+        // BACKGROUND
+        // =========================
         private async Task BackGround()
         {
             while (true)
             {
-                await Dispatcher.InvokeAsync(UpdateBal);
-                await Dispatcher.InvokeAsync(CheckRenewals);
-                await Dispatcher.InvokeAsync(CheckMonthlySpent);
-                ListAllTransaction.Clear();
-                ListAllTransaction.AddRange(ListMonthIncome);
-                ListAllTransaction.AddRange(ListSubscription);
-            }
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateBal();
+                    CheckRenewals();
+                    CheckMonthlySpent();
+                    RebuildTransactionList();
+                });
 
+                await Task.Delay(1000); // 🔥 evita CPU 100%
+            }
         }
 
-        private async Task CheckMonthlySpent()
+        private void RebuildTransactionList()
+        {
+            ListAllTransaction.Clear();
+            ListAllTransaction.AddRange(ListExpenses);
+            ListAllTransaction.AddRange(ListSubscription);
+        }
+
+        private void CheckMonthlySpent()
         {
             DateTime today = DateTime.Today;
-            foreach (Item item in ListSubscription)
+
+            monthlySpent = 0;
+
+            foreach (var sub in ListSubscription)
             {
-                if (today.Date.Month == item.Date.Month - 1  && !MonthTransaction.Contains(item))
+                if (sub.Date.Month == today.Month && sub.Date.Year == today.Year)
                 {
-                    MonthTransaction.Add(item);
-                    monthlySpent += item.Price;
+                    MonthTransaction.Add(sub);
+                    monthlySpent += sub.Price;
                 }
             }
+
+            foreach (var exp in ListExpenses)
+            {
+                if (exp.Date.Month == today.Month && exp.Date.Year == today.Year)
+                {
+                    MonthTransaction.Add(exp);
+                    monthlySpent += exp.Price;
+                }
+            }
+
             _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
             _txtMonthTransaction.Foreground = Brushes.Red;
 
@@ -189,15 +251,21 @@ namespace FinanceTracker
         {
             ListNearRenewals.Clear();
             DateTime today = DateTime.Today;
-            foreach (Subscription sub in ListSubscription)
+
+            foreach (var sub in ListSubscription)
             {
-                if ((sub.Date - today).TotalDays <= 14 && (sub.Date - today).TotalDays >= 0)
+                double days = (sub.Date - today).TotalDays;
+
+                if (days >= 0 && days <= 14)
                 {
-                    if(sub.Date == today)
+                    if (sub.Date == today)
                     {
                         bal -= sub.Price;
-                        sub.Date = DateTime.Today.AddMonths(1);
+                        sub.Date = sub.Date.AddMonths(1);
+
+                        SaveUserData();
                     }
+
                     ListNearRenewals.Add(sub);
                 }
             }
@@ -207,41 +275,22 @@ namespace FinanceTracker
         {
             _expensesBox.Visibility = Visibility.Visible;
             Button btn = sender as Button;
-            string expenseInfo = btn.Name.ToString();
-            switch(expenseInfo)
+
+            switch (btn.Name)
             {
                 case "_btnExpences":
-                    ShowExpences();
+                    _itemsList.ItemsSource = MonthTransaction.OrderByDescending(x => x.Date);
                     break;
-                case "_btnIncome":
-                    break;
+
                 case "_btnRenewal":
-                    ShowAllRenwals();
+                    _itemsList.ItemsSource = ListNearRenewals.OrderBy(x => x.Date);
                     break;
+
                 case "_btnSubscription":
-                    ShowAllSubscriptions();
+                    _itemsList.ItemsSource = ListSubscription;
                     break;
             }
-        }
 
-        private void ShowExpences()
-        {
-            List<Item> TmonthTransaction = MonthTransaction.OrderByDescending(time => time.Date.Date).ToList();
-            _itemsList.ItemsSource = TmonthTransaction;
-            _viewMoreGrid.Visibility = Visibility.Visible;
-        }
-        private void ShowAllRenwals()
-        {
-
-            List<Subscription> Tnearest = ListNearRenewals.OrderBy(time => time.Date.Date).ToList();
-            
-            _itemsList.ItemsSource = Tnearest;
-            _viewMoreGrid.Visibility = Visibility.Visible;
-        }
-
-        private void ShowAllSubscriptions()
-        {
-            _itemsList.ItemsSource = ListSubscription;
             _viewMoreGrid.Visibility = Visibility.Visible;
         }
 

@@ -13,10 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Resource Include="Sprites\close.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

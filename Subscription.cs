@@ -6,18 +6,15 @@ namespace FinanceTracker
 {
     internal class Subscription : Expense
     {
+        public bool Payed { get; set; }
         public Subscription(string name, string description, DateTime date, decimal price) : base(name, description, date, price)
         {
+            Payed = false;
+        }
+        public Subscription(string name, string description, DateTime date, decimal price, bool payed) : base(name, description, date, price)
+        {
+            Payed = payed;
         }
 
-        public override decimal substractPrice()
-        {
-            if (Date.Date == DateTime.Today && !Payed)
-            {
-                Payed = true;
-                return Price * -1;
-            }
-            return 0.00M;
-        }
     }
 }

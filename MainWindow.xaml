@@ -8,7 +8,8 @@
 
     <Grid>
         <!-- Background shapes (kept in a Canvas so positioning stays the same) -->
-        <Canvas Width="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth}"
+        <Canvas Width="{Binding
+            RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth}"
                 Height="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualHeight}"
                 IsHitTestVisible="False">
             <Ellipse Fill="#FF62F5C4" Width="1542" Height="1164" Canvas.Left="-362" Canvas.Top="-184"/>
@@ -120,7 +121,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="_pageGrid" d:IsHidden="True">
+        <Grid x:Name="_pageGrid">
 
             <!-- SFONDO -->
             <Canvas>
@@ -315,7 +316,7 @@
             </StackPanel>
 
         </Grid>
-        <Grid x:Name="_viewMoreGrid">
+        <Grid x:Name="_viewMoreGrid" d:IsHidden="True">
 
             <Border x:Name="_expensesBox" Background="#7F000000">
                 <Grid>
