@@ -1,4 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -15,13 +19,14 @@ namespace FinanceTracker
         List<Item> MonthTransaction = new List<Item>();
 
         decimal monthlySpent = 0.00M;
+        decimal monthlyIncome = 0.00M;
         decimal bal = 0.00M;
         string name;
         string surname;
 
         string PathUserData = @"../../../Data/UserData.txt";
         string PathSubsciptionData = @"../../../Data/SubscriptionData.txt";
-        string PathActivityData = @"../../../Data/ActivityData.txt";
+        string PathActivityData = @"../../../Data/IncomeData.txt";
 
         public MainWindow()
         {
@@ -45,18 +50,10 @@ namespace FinanceTracker
             LoadData();
             LoadTransactions();
 
-            if (isSubDataEmpty)
-            {
-                AddTransaction("Gas", "Car fuel", DateTime.Today.AddDays(-1), 50.00M);
-                AddSubscription("Netflix", "Streaming service", DateTime.Today.AddDays(10), 15.99M, true);
-            }
-
             _expensesBox.Visibility = Visibility.Hidden;
         }
 
-        // =========================
-        // USER DATA
-        // =========================
+
         private void SaveUserData()
         {
             try
@@ -83,45 +80,92 @@ namespace FinanceTracker
 
                     _txtName.Text = $"{name} {surname}";
                     _txtboxbalance.Text = $"€ {bal:F2}";
-                }
+                } else return;
             }
             catch
             {
-                MessageBox.Show("Error loading user data.");
+                
             }
         }
 
-        // =========================
-        // TRANSACTIONS
-        // =========================
+
         private void LoadTransactions()
         {
-            if (!File.Exists(PathSubsciptionData)) return;
+            ListSubscription.Clear();
+            ListExpenses.Clear();
+            ListMonthIncome.Clear();
 
-            foreach (string line in File.ReadAllLines(PathSubsciptionData))
+            if (File.Exists(PathSubsciptionData))
             {
-                string[] data = line.Split(';');
+                foreach (string line in File.ReadAllLines(PathSubsciptionData))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    string[] data = line.Split(';');
 
-                if (data.Length >= 5 && data[0] == "Transaction")
-                {
-                    ListExpenses.Add(new Expense(
-                        data[1],
-                        data[2],
-                        DateTime.Parse(data[3]),
-                        decimal.Parse(data[4])
-                    ));
-                }
-                else if (data.Length == 6 && data[0] == "Subscription")
-                {
-                    ListSubscription.Add(new Subscription(
-                        data[1],
-                        data[2],
-                        DateTime.Parse(data[3]),
-                        decimal.Parse(data[4]),
-                        bool.Parse(data[5])
-                    ));
+                    if (data.Length >= 5 && data[0] == "Transaction")
+                    {
+                        ListExpenses.Add(new Expense(
+                            data[1],
+                            data[2],
+                            DateTime.Parse(data[3]),
+                            decimal.Parse(data[4])
+                        ));
+                    }
+                    else if (data.Length >= 6 && data[0] == "Subscription")
+                    {
+                        ListSubscription.Add(new Subscription(
+                            data[1],
+                            data[2],
+                            DateTime.Parse(data[3]),
+                            decimal.Parse(data[4]),
+                            bool.Parse(data[5])
+                        ));
+                    }
                 }
             }
+
+            if (File.Exists(PathActivityData))
+            {
+                foreach (string line in File.ReadAllLines(PathActivityData))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    string[] data = line.Split(';');
+                    if (data.Length >= 5 && data[0] == "Transaction")
+                    {
+                        ListExpenses.Add(new Expense(
+                            data[1],
+                            data[2],
+                            DateTime.Parse(data[3]),
+                            decimal.Parse(data[4])
+                        ));
+                    }
+                    else if (data.Length >= 5 && data[0] == "Income")
+                    {
+                        ListMonthIncome.Add(new Income(
+                            data[1],
+                            data[2],
+                            DateTime.Parse(data[3]),
+                            decimal.Parse(data[4])
+                        ));
+                    }
+                }
+            }
+
+            RebuildTransactionList();
+        }
+
+        private void AddIncome(string name, string description, DateTime date, decimal price)
+        {
+            Income inc = new Income(name, description, date, price);
+            ListMonthIncome.Add(inc);
+
+            bal += price;
+
+            File.AppendAllText(PathActivityData,
+                $"Income;{inc.Name};{inc.Description};{inc.Date};{inc.Price}\n");
+
+            SaveUserData();
+            SaveActivitiesToFile();
         }
 
         private void AddTransaction(string name, string description, DateTime date, decimal price)
@@ -129,12 +173,13 @@ namespace FinanceTracker
             Expense exp = new Expense(name, description, date, price);
             ListExpenses.Add(exp);
 
-            bal -= price; // 🔥 aggiorna saldo
+            bal -= price; 
 
-            File.AppendAllText(PathSubsciptionData,
+            File.AppendAllText(PathActivityData,
                 $"Transaction;{exp.Name};{exp.Description};{exp.Date};{exp.Price}\n");
 
             SaveUserData();
+            SaveActivitiesToFile();
         }
 
         private void AddSubscription(string name, string description, DateTime date, decimal price, bool payed)
@@ -144,11 +189,16 @@ namespace FinanceTracker
 
             File.AppendAllText(PathSubsciptionData,
                 $"Subscription;{sub.Name};{sub.Description};{sub.Date};{sub.Price};{sub.Payed}\n");
+
+
+            if (payed)
+            {
+                bal -= price;
+                SaveUserData();
+            }
+            SaveSubscriptionsToFile();
         }
 
-        // =========================
-        // UI + LOGIN
-        // =========================
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             name = _txtboxname.Text;
@@ -189,25 +239,25 @@ namespace FinanceTracker
             _txtSubsription.Text = ListSubscription.Count.ToString();
             _txtNearRenwals.Text = ListNearRenewals.Count.ToString();
 
-            SaveUserData(); // 🔥 sempre sincronizzato
+
         }
 
-        // =========================
-        // BACKGROUND
-        // =========================
         private async Task BackGround()
         {
             while (true)
             {
+
                 await Dispatcher.InvokeAsync(() =>
                 {
                     UpdateBal();
                     CheckRenewals();
-                    CheckMonthlySpent();
                     RebuildTransactionList();
                 });
 
-                await Task.Delay(1000); // 🔥 evita CPU 100%
+
+                await CheckMonthlySpentAsync();
+
+                await Task.Delay(1000);
             }
         }
 
@@ -216,6 +266,7 @@ namespace FinanceTracker
             ListAllTransaction.Clear();
             ListAllTransaction.AddRange(ListExpenses);
             ListAllTransaction.AddRange(ListSubscription);
+            ListAllTransaction.AddRange(ListMonthIncome);
         }
 
         private void CheckMonthlySpent()
@@ -223,6 +274,7 @@ namespace FinanceTracker
             DateTime today = DateTime.Today;
 
             monthlySpent = 0;
+            MonthTransaction.Clear();
 
             foreach (var sub in ListSubscription)
             {
@@ -241,10 +293,34 @@ namespace FinanceTracker
                     monthlySpent += exp.Price;
                 }
             }
+            // compute incomes for month
+            monthlyIncome = 0;
+            foreach (var inc in ListMonthIncome)
+            {
+                if (inc.Date.Month == today.Month && inc.Date.Year == today.Year)
+                {
+                    monthlyIncome += inc.Price;
+                }
+            }
 
-            _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
-            _txtMonthTransaction.Foreground = Brushes.Red;
+        }
 
+        private async Task CheckMonthlySpentAsync()
+        {
+            await Task.Run(() => CheckMonthlySpent());
+
+            // update UI on dispatcher
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
+                _txtMonthTransaction.Foreground = Brushes.Red;
+
+                try
+                {
+                    _txtMonthIncome.Text = $"€ {monthlyIncome:F2}";
+                }
+                catch { }
+            });
         }
 
         private void CheckRenewals()
@@ -263,12 +339,36 @@ namespace FinanceTracker
                         bal -= sub.Price;
                         sub.Date = sub.Date.AddMonths(1);
 
+                        // persist subscription date change and balance
+                        SaveSubscriptionsToFile();
                         SaveUserData();
                     }
 
                     ListNearRenewals.Add(sub);
                 }
             }
+        }
+
+        private void SaveSubscriptionsToFile()
+        {
+            try
+            {
+                var lines = ListSubscription.Select(s => $"Subscription;{s.Name};{s.Description};{s.Date};{s.Price};{s.Payed}");
+                File.WriteAllLines(PathSubsciptionData, lines);
+            }
+            catch { }
+        }
+
+        private void SaveActivitiesToFile()
+        {
+            try
+            {
+                var lines = new List<string>();
+                lines.AddRange(ListExpenses.Select(e => $"Transaction;{e.Name};{e.Description};{e.Date};{e.Price}"));
+                lines.AddRange(ListMonthIncome.Select(i => $"Income;{i.Name};{i.Description};{i.Date};{i.Price}"));
+                File.WriteAllLines(PathActivityData, lines);
+            }
+            catch { }
         }
 
         private void BtnSeeMore_Click(object sender, RoutedEventArgs e)
@@ -289,6 +389,9 @@ namespace FinanceTracker
                 case "_btnSubscription":
                     _itemsList.ItemsSource = ListSubscription;
                     break;
+                case "_btnIncome":
+                    _itemsList.ItemsSource = ListMonthIncome.OrderByDescending(x => x.Date);
+                    break;
             }
 
             _viewMoreGrid.Visibility = Visibility.Visible;
@@ -298,6 +401,99 @@ namespace FinanceTracker
         {
             _expensesBox.Visibility = Visibility.Hidden;
             _itemsList.ItemsSource = null;
+        }
+
+        private void _btnCloseIncome_Click(object sender, RoutedEventArgs e)
+        {
+            _addGrid.Visibility = Visibility.Hidden;
+            _addSubscription.Visibility = Visibility.Hidden;
+            _addIncome.Visibility = Visibility.Hidden;
+            _addExpense.Visibility = Visibility.Hidden;
+        }
+        private void _btnAdd_Click(object sender, RoutedEventArgs e)
+        {
+            _addGrid.Visibility = Visibility.Visible;
+            // show the appropriate panel based on which button was clicked
+            if (sender is Button btn)
+            {
+                _addSubscription.Visibility = Visibility.Collapsed;
+                _addIncome.Visibility = Visibility.Collapsed;
+                _addExpense.Visibility = Visibility.Collapsed;
+
+                switch (btn.Name)
+                {
+                    case "_btnaddSubscription":
+                    case "_btnAddSubscription":
+                        _addSubscription.Visibility = Visibility.Visible;
+                        break;
+                    case "_btnaddTransaction":
+                    case "_btnAddIncome":
+                        _addIncome.Visibility = Visibility.Visible;
+                        break;
+                    case "_btnaddSpent":
+                    case "_btnAddExpense":
+                        _addExpense.Visibility = Visibility.Visible;
+                        break;
+                }
+            }
+        }
+
+        private void _btnSaveIncome_Click(object sender, RoutedEventArgs e)
+        {
+            string iname = _txtAddIncomeName.Text?.Trim();
+            string idesc = _txtAddIncomeDescription.Text?.Trim();
+            if (string.IsNullOrEmpty(iname)) { MessageBox.Show("Inserisci il nome dell'entrata."); return; }
+            if (!decimal.TryParse(_txtAddIncomeCost.Text, out decimal cost)) { MessageBox.Show("Inserisci un importo valido."); return; }
+            DateTime date = _dateAddIncome.SelectedDate ?? DateTime.Today;
+            AddIncome(iname, idesc, date, cost);
+            _addGrid.Visibility = Visibility.Hidden;
+            _txtAddIncomeName.Text = _txtAddIncomeDescription.Text = _txtAddIncomeCost.Text = string.Empty;
+            _dateAddIncome.SelectedDate = DateTime.Today;
+            UpdateBal();
+        }
+
+        private void _btnSaveExpense_Click(object sender, RoutedEventArgs e)
+        {
+            string ename = _txtAddExpenseName.Text?.Trim();
+            string edesc = _txtAddExpenseDescription.Text?.Trim();
+            if (string.IsNullOrEmpty(ename)) { MessageBox.Show("Inserisci il nome della spesa."); return; }
+            if (!decimal.TryParse(_txtAddExpenseCost.Text, out decimal cost)) { MessageBox.Show("Inserisci un importo valido."); return; }
+            DateTime date = _dateAddExpense.SelectedDate ?? DateTime.Today;
+            AddTransaction(ename, edesc, date, cost);
+            _addGrid.Visibility = Visibility.Hidden;
+            _txtAddExpenseName.Text = _txtAddExpenseDescription.Text = _txtAddExpenseCost.Text = string.Empty;
+            _dateAddExpense.SelectedDate = DateTime.Today;
+            UpdateBal();
+        }
+
+        private void _btnSaveSubscription_Click(object sender, RoutedEventArgs e)
+        {
+            string sname = _txtAddSubName.Text?.Trim();
+            string sdesc = _txtAddSubDescription.Text?.Trim();
+
+            if (string.IsNullOrEmpty(sname))
+            {
+                MessageBox.Show("Inserisci il nome dell'abbonamento.");
+                return;
+            }
+
+            if (!decimal.TryParse(_txtAddSubCost.Text, out decimal cost))
+            {
+                MessageBox.Show("Inserisci un costo valido.");
+                return;
+            }
+
+            DateTime date = _dateAddSub.SelectedDate ?? DateTime.Today;
+
+            AddSubscription(sname, sdesc, date, cost, false);
+
+            // Aggiorna UI e chiudi
+            _addGrid.Visibility = Visibility.Hidden;
+            _txtAddSubName.Text = string.Empty;
+            _txtAddSubDescription.Text = string.Empty;
+            _txtAddSubCost.Text = string.Empty;
+            _dateAddSub.SelectedDate = DateTime.Today;
+            UpdateBal();
         }
     }
 }
