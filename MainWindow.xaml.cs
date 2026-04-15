@@ -35,7 +35,7 @@ namespace FinanceTracker
 
         string PathUserData = @"../../../Data/UserData.txt";
         string PathSubsciptionData = @"../../../Data/SubscriptionData.txt";
-        string PathActivityData = @"../../../Data/IncomeData.txt";
+        string PathActivityData = @"../../../Data/AllData.txt";
         string PathStipendioData = @"../../../Data/StipendioData.txt";
 
         public MainWindow()
@@ -551,24 +551,20 @@ namespace FinanceTracker
         private void _btnAdd_Click(object sender, RoutedEventArgs e)
         {
             _addGrid.Visibility = Visibility.Visible;
+
             if (sender is Button btn)
             {
                 _addSubscription.Visibility = Visibility.Collapsed;
                 _addIncome.Visibility = Visibility.Collapsed;
                 _addExpense.Visibility = Visibility.Collapsed;
 
-                switch (btn.Name)
-                {
-                    case "_btnAddSubscription":
-                        _addSubscription.Visibility = Visibility.Visible;
-                        break;
-                    case "_btnAddIncome":
-                        _addIncome.Visibility = Visibility.Visible;
-                        break;
-                    case "_btnAddExpense":
-                        _addExpense.Visibility = Visibility.Visible;
-                        break;
-                }
+                string n = (btn.Name ?? string.Empty).ToLower();
+                if (n.Contains("addsubscription"))
+                    _addSubscription.Visibility = Visibility.Visible;
+                else if (n.Contains("addincome") || n.Contains("addtransaction"))
+                    _addIncome.Visibility = Visibility.Visible;
+                else if (n.Contains("addexpense") || n.Contains("addspent"))
+                    _addExpense.Visibility = Visibility.Visible;
             }
         }
 
