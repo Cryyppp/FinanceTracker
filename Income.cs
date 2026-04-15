@@ -15,7 +15,7 @@ namespace FinanceTracker
 
         public Income(string name, string description, DateTime date, decimal price, bool recurring) : base(name, description, date, price)
         {
-            Recurring = recurring;
+            Recurring = true;
         }
     }
 }

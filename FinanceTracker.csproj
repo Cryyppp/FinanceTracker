@@ -22,4 +22,8 @@
     <PackageReference Include="OxyPlot.Wpf" Version="2.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
+
 </Project>

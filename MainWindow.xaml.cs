@@ -7,8 +7,16 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
+
 namespace FinanceTracker
 {
+    public class ChartBarData
+    {
+        public string Label { get; set; }
+        public double Value { get; set; } // Altezza calcolata
+        public string AmountFormatted { get; set; }
+        public SolidColorBrush Color { get; set; }
+    }
     public partial class MainWindow : Window
     {
         List<Item> ListAllTransaction = new List<Item>();
@@ -17,6 +25,7 @@ namespace FinanceTracker
         List<Subscription> ListSubscription = new List<Subscription>();
         List<Expense> ListExpenses = new List<Expense>();
         List<Item> MonthTransaction = new List<Item>();
+        List<Income> ListStipendio = new List<Income>();
 
         decimal monthlySpent = 0.00M;
         decimal monthlyIncome = 0.00M;
@@ -27,6 +36,7 @@ namespace FinanceTracker
         string PathUserData = @"../../../Data/UserData.txt";
         string PathSubsciptionData = @"../../../Data/SubscriptionData.txt";
         string PathActivityData = @"../../../Data/IncomeData.txt";
+        string PathStipendioData = @"../../../Data/StipendioData.txt";
 
         public MainWindow()
         {
@@ -39,20 +49,88 @@ namespace FinanceTracker
                 File.WriteAllText(PathUserData, "");
                 File.WriteAllText(PathSubsciptionData, "");
                 File.WriteAllText(PathActivityData, "");
+                File.WriteAllText(PathStipendioData, "");
                 ShowLogin(true);
             }
             else
             {
                 ShowLogin(false);
-                Task.Run(async () => await BackGround());
+                RunTask();
             }
 
             LoadData();
             LoadTransactions();
+            LoadStipendiRicorrenti();
 
             _expensesBox.Visibility = Visibility.Hidden;
         }
 
+        private void LoadStipendiRicorrenti()
+        {
+            ListStipendio.Clear();
+            if (File.Exists(PathStipendioData))
+            {
+                foreach (var line in File.ReadAllLines(PathStipendioData))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var data = line.Split(',');
+                    if (data.Length >= 5 && bool.TryParse(data[4], out bool recurring) && recurring)
+                    {
+                        ListStipendio.Add(new Income(
+                            data[0],
+                            data[1],
+                            DateTime.Parse(data[2]),
+                            decimal.Parse(data[3]),
+                            true
+                        ));
+                    }
+                }
+            }
+        }
+        
+
+        private void UpdateChart()
+        {
+            // Determina il valore massimo per scalare le barre (altezza max 200px)
+            decimal maxVal = Math.Max(monthlyIncome, monthlySpent);
+            if (maxVal <= 0) maxVal = 1;
+
+            double scaleFactor = 200.0 / (double)maxVal;
+
+            var bars = new List<ChartBarData>
+            {
+                new ChartBarData
+                {
+                    Label = "Entrate",
+                    Value = (double)monthlyIncome * scaleFactor,
+                    AmountFormatted = $"€ {monthlyIncome:F2}",
+                    Color = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2ECC71"))
+                },
+                new ChartBarData
+                {
+                    Label = "Uscite",
+                    Value = (double)monthlySpent * scaleFactor,
+                    AmountFormatted = $"€ {monthlySpent:F2}",
+                    Color = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E74C3C"))
+                }
+            };
+
+            _chartContainer.ItemsSource = bars;
+        }
+
+        private void SaveStipendiRicorrenti()
+        {
+            try
+            {
+                File.WriteAllText(PathStipendioData, "");
+                foreach (var stipendio in ListStipendio)
+                {
+                    File.AppendAllText(PathStipendioData,
+                        $"{stipendio.Name},{stipendio.Description},{stipendio.Date},{stipendio.Price},{stipendio.Recurring}\n");
+                }
+            }
+            catch { }
+        }
 
         private void SaveUserData()
         {
@@ -220,6 +298,11 @@ namespace FinanceTracker
 
             ShowLogin(false);
             LoadData();
+            RunTask();
+        }
+
+        private void RunTask()
+        {
             Task.Run(async () => await BackGround());
         }
 
@@ -252,6 +335,8 @@ namespace FinanceTracker
                     UpdateBal();
                     CheckRenewals();
                     RebuildTransactionList();
+                    CheckStipendio();
+                    UpdateChart();
                 });
 
 
@@ -261,12 +346,34 @@ namespace FinanceTracker
             }
         }
 
+        private void CheckStipendio()
+        {
+            DateTime today = DateTime.Today;
+            bool changed = false;
+            foreach (var inc in ListStipendio.ToList())
+            {
+                // Calcola la data stipendio per il mese corrente
+                DateTime stipendioDate = new DateTime(today.Year, today.Month, Math.Min(inc.Date.Day, DateTime.DaysInMonth(today.Year, today.Month)));
+                // Se non esiste già una income per questo stipendio in questo mese
+                bool alreadyAdded = ListMonthIncome.Any(i => i.Name == inc.Name && i.Date.Month == today.Month && i.Date.Year == today.Year);
+                if (!alreadyAdded && today >= stipendioDate)
+                {
+                    AddIncome(inc.Name, inc.Description, stipendioDate, inc.Price);
+                    // Aggiorna la data al mese successivo
+                    inc.Date = stipendioDate.AddMonths(1);
+                    changed = true;
+                }
+            }
+            if (changed) SaveStipendiRicorrenti();
+        }
+
         private void RebuildTransactionList()
         {
             ListAllTransaction.Clear();
             ListAllTransaction.AddRange(ListExpenses);
             ListAllTransaction.AddRange(ListSubscription);
             ListAllTransaction.AddRange(ListMonthIncome);
+            ListAllTransaction.AddRange(ListStipendio);
         }
 
         private void CheckMonthlySpent()
@@ -314,10 +421,16 @@ namespace FinanceTracker
             {
                 _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
                 _txtMonthTransaction.Foreground = Brushes.Red;
-
                 try
                 {
                     _txtMonthIncome.Text = $"€ {monthlyIncome:F2}";
+                }
+                catch { }
+
+                // aggiorna grafico dopo il calcolo
+                try
+                {
+                    UpdateChart();
                 }
                 catch { }
             });
@@ -445,10 +558,25 @@ namespace FinanceTracker
             if (string.IsNullOrEmpty(iname)) { MessageBox.Show("Inserisci il nome dell'entrata."); return; }
             if (!decimal.TryParse(_txtAddIncomeCost.Text, out decimal cost)) { MessageBox.Show("Inserisci un importo valido."); return; }
             DateTime date = _dateAddIncome.SelectedDate ?? DateTime.Today;
-            AddIncome(iname, idesc, date, cost);
-            _addGrid.Visibility = Visibility.Hidden;
-            _txtAddIncomeName.Text = _txtAddIncomeDescription.Text = _txtAddIncomeCost.Text = string.Empty;
-            _dateAddIncome.SelectedDate = DateTime.Today;
+            if (_chkIncomeRecurring.IsChecked == true)
+            {
+                Income inc = new Income(iname, idesc, date, cost, true);
+                ListStipendio.Add(inc);
+                StreamWriter sw = new StreamWriter(PathStipendioData, true);
+                sw.WriteLine($"{inc.Name},{inc.Description},{inc.Date},{inc.Price},{inc.Recurring}");
+                sw.Close();
+
+                _addGrid.Visibility = Visibility.Hidden;
+                _txtAddIncomeName.Text = _txtAddIncomeDescription.Text = _txtAddIncomeCost.Text = string.Empty;
+                _dateAddIncome.SelectedDate = DateTime.Today;
+            }
+            else
+            {
+                AddIncome(iname, idesc, date, cost);
+                _addGrid.Visibility = Visibility.Hidden;
+                _txtAddIncomeName.Text = _txtAddIncomeDescription.Text = _txtAddIncomeCost.Text = string.Empty;
+                _dateAddIncome.SelectedDate = DateTime.Today;
+            }
             UpdateBal();
         }
 
