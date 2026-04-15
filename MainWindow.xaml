@@ -12,7 +12,7 @@
         <Canvas Width="{Binding
             RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth}"
                 Height="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualHeight}"
-                IsHitTestVisible="False">
+                IsHitTestVisible="False" d:IsHidden="True">
             <Ellipse Fill="#FF62F5C4" Width="1542" Height="1164" Canvas.Left="-362" Canvas.Top="-184"/>
             <Ellipse Fill="#FF62F5C4" Width="1536" Height="1318" Canvas.Left="720" Canvas.Top="128"/>
 
@@ -24,7 +24,7 @@
         </Canvas>
 
         <!-- Overlay content: login and page grids. They stretch and are positioned using alignment rather than fixed sizes. -->
-        <Grid x:Name="_loginGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" d:IsHidden="True">
+        <Grid x:Name="_loginGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <!-- CONTENUTO -->
             <Grid Background="#00000000">
                 <Grid.ColumnDefinitions>
@@ -337,7 +337,7 @@
             </StackPanel>
 
         </Grid>
-        <Grid x:Name="_viewMoreGrid" Visibility="Hidden" d:IsHidden="True">
+        <Grid x:Name="_viewMoreGrid" Visibility="Hidden">
 
             <Border x:Name="_expensesBox" Background="#7F000000">
                 <Grid>

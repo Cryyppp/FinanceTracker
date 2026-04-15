@@ -271,10 +271,33 @@ namespace FinanceTracker
 
             if (payed)
             {
+                // registra il pagamento immediatamente come spesa e aggiorna saldo
                 bal -= price;
+                // aggiungi anche una voce di Expense così viene mostrata nelle spese del mese
+                // usa la data odierna per la transazione pagata (il rinnovo può essere in futuro)
+                var paidExpense = new Expense(sub.Name, sub.Description, DateTime.Today, sub.Price);
+                // evita duplicati
+                if (!ListExpenses.Any(e => e.Name == paidExpense.Name && e.Date == paidExpense.Date && e.Price == paidExpense.Price))
+                {
+                    ListExpenses.Add(paidExpense);
+                    // aggiorna il file delle attività (Transaction)
+                    File.AppendAllText(PathActivityData,
+                        $"Transaction;{paidExpense.Name};{paidExpense.Description};{paidExpense.Date};{paidExpense.Price}\n");
+                }
+                // salva attività e utente
+                SaveActivitiesToFile();
                 SaveUserData();
             }
             SaveSubscriptionsToFile();
+            // Aggiorna lista e riepiloghi subito
+            RebuildTransactionList();
+            CheckMonthlySpent();
+            // aggiorna UI immediatamente
+            _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
+            _txtMonthTransaction.Foreground = Brushes.Red;
+            try { _txtMonthIncome.Text = $"€ {monthlyIncome:F2}"; } catch { }
+            UpdateChart();
+            UpdateBal();
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -449,10 +472,20 @@ namespace FinanceTracker
                 {
                     if (sub.Date == today)
                     {
+                        // process renewal payment: deduct, record expense, advance date
                         bal -= sub.Price;
+
+                        var renewalExpense = new Expense(sub.Name, sub.Description, today, sub.Price);
+                        if (!ListExpenses.Any(e => e.Name == renewalExpense.Name && e.Date == renewalExpense.Date && e.Price == renewalExpense.Price))
+                        {
+                            ListExpenses.Add(renewalExpense);
+                        }
+
+                        // advance subscription next date
                         sub.Date = sub.Date.AddMonths(1);
 
-                        // persist subscription date change and balance
+                        // persist changes
+                        SaveActivitiesToFile();
                         SaveSubscriptionsToFile();
                         SaveUserData();
                     }
@@ -562,8 +595,9 @@ namespace FinanceTracker
             {
                 Income inc = new Income(iname, idesc, date, cost, true);
                 ListStipendio.Add(inc);
+                // persist recurring income using ';' separator
                 StreamWriter sw = new StreamWriter(PathStipendioData, true);
-                sw.WriteLine($"{inc.Name},{inc.Description},{inc.Date},{inc.Price},{inc.Recurring}");
+                sw.WriteLine($"{inc.Name};{inc.Description};{inc.Date};{inc.Price};{inc.Recurring}");
                 sw.Close();
 
                 _addGrid.Visibility = Visibility.Hidden;
@@ -621,6 +655,7 @@ namespace FinanceTracker
             _txtAddSubDescription.Text = string.Empty;
             _txtAddSubCost.Text = string.Empty;
             _dateAddSub.SelectedDate = DateTime.Today;
+
             UpdateBal();
         }
     }
