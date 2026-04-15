@@ -32,7 +32,3 @@ Note importanti
 
 Suggerimenti per sviluppatori
 - Miglioramenti consigliati: usare formati di data ISO, centralizzare I/O in una classe di repository, deduplicare righe prima di salvare.
-
-Licenza
-- Aggiungi qui la licenza che preferisci (es. MIT).
-
