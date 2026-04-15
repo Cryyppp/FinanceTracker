@@ -13,7 +13,7 @@ namespace FinanceTracker
     public class ChartBarData
     {
         public string Label { get; set; }
-        public double Value { get; set; } // Altezza calcolata
+        public double Value { get; set; }
         public string AmountFormatted { get; set; }
         public SolidColorBrush Color { get; set; }
     }
@@ -91,7 +91,7 @@ namespace FinanceTracker
 
         private void UpdateChart()
         {
-            // Determina il valore massimo per scalare le barre (altezza max 200px)
+ 
             decimal maxVal = Math.Max(monthlyIncome, monthlySpent);
             if (maxVal <= 0) maxVal = 1;
 
@@ -271,28 +271,27 @@ namespace FinanceTracker
 
             if (payed)
             {
-                // registra il pagamento immediatamente come spesa e aggiorna saldo
+ 
                 bal -= price;
-                // aggiungi anche una voce di Expense così viene mostrata nelle spese del mese
-                // usa la data odierna per la transazione pagata (il rinnovo può essere in futuro)
+ 
                 var paidExpense = new Expense(sub.Name, sub.Description, DateTime.Today, sub.Price);
-                // evita duplicati
+ 
                 if (!ListExpenses.Any(e => e.Name == paidExpense.Name && e.Date == paidExpense.Date && e.Price == paidExpense.Price))
                 {
                     ListExpenses.Add(paidExpense);
-                    // aggiorna il file delle attività (Transaction)
+ 
                     File.AppendAllText(PathActivityData,
                         $"Transaction;{paidExpense.Name};{paidExpense.Description};{paidExpense.Date};{paidExpense.Price}\n");
                 }
-                // salva attività e utente
+ 
                 SaveActivitiesToFile();
                 SaveUserData();
             }
             SaveSubscriptionsToFile();
-            // Aggiorna lista e riepiloghi subito
+ 
             RebuildTransactionList();
             CheckMonthlySpent();
-            // aggiorna UI immediatamente
+ 
             _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
             _txtMonthTransaction.Foreground = Brushes.Red;
             try { _txtMonthIncome.Text = $"€ {monthlyIncome:F2}"; } catch { }
@@ -375,14 +374,13 @@ namespace FinanceTracker
             bool changed = false;
             foreach (var inc in ListStipendio.ToList())
             {
-                // Calcola la data stipendio per il mese corrente
                 DateTime stipendioDate = new DateTime(today.Year, today.Month, Math.Min(inc.Date.Day, DateTime.DaysInMonth(today.Year, today.Month)));
-                // Se non esiste già una income per questo stipendio in questo mese
+
                 bool alreadyAdded = ListMonthIncome.Any(i => i.Name == inc.Name && i.Date.Month == today.Month && i.Date.Year == today.Year);
                 if (!alreadyAdded && today >= stipendioDate)
                 {
                     AddIncome(inc.Name, inc.Description, stipendioDate, inc.Price);
-                    // Aggiorna la data al mese successivo
+
                     inc.Date = stipendioDate.AddMonths(1);
                     changed = true;
                 }
@@ -423,7 +421,6 @@ namespace FinanceTracker
                     monthlySpent += exp.Price;
                 }
             }
-            // compute incomes for month
             monthlyIncome = 0;
             foreach (var inc in ListMonthIncome)
             {
@@ -439,7 +436,6 @@ namespace FinanceTracker
         {
             await Task.Run(() => CheckMonthlySpent());
 
-            // update UI on dispatcher
             await Dispatcher.InvokeAsync(() =>
             {
                 _txtMonthTransaction.Text = $"-€ {monthlySpent:F2}";
@@ -450,7 +446,6 @@ namespace FinanceTracker
                 }
                 catch { }
 
-                // aggiorna grafico dopo il calcolo
                 try
                 {
                     UpdateChart();
@@ -472,7 +467,6 @@ namespace FinanceTracker
                 {
                     if (sub.Date == today)
                     {
-                        // process renewal payment: deduct, record expense, advance date
                         bal -= sub.Price;
 
                         var renewalExpense = new Expense(sub.Name, sub.Description, today, sub.Price);
@@ -481,10 +475,8 @@ namespace FinanceTracker
                             ListExpenses.Add(renewalExpense);
                         }
 
-                        // advance subscription next date
                         sub.Date = sub.Date.AddMonths(1);
 
-                        // persist changes
                         SaveActivitiesToFile();
                         SaveSubscriptionsToFile();
                         SaveUserData();
@@ -559,7 +551,6 @@ namespace FinanceTracker
         private void _btnAdd_Click(object sender, RoutedEventArgs e)
         {
             _addGrid.Visibility = Visibility.Visible;
-            // show the appropriate panel based on which button was clicked
             if (sender is Button btn)
             {
                 _addSubscription.Visibility = Visibility.Collapsed;
@@ -568,15 +559,12 @@ namespace FinanceTracker
 
                 switch (btn.Name)
                 {
-                    case "_btnaddSubscription":
                     case "_btnAddSubscription":
                         _addSubscription.Visibility = Visibility.Visible;
                         break;
-                    case "_btnaddTransaction":
                     case "_btnAddIncome":
                         _addIncome.Visibility = Visibility.Visible;
                         break;
-                    case "_btnaddSpent":
                     case "_btnAddExpense":
                         _addExpense.Visibility = Visibility.Visible;
                         break;
@@ -595,7 +583,6 @@ namespace FinanceTracker
             {
                 Income inc = new Income(iname, idesc, date, cost, true);
                 ListStipendio.Add(inc);
-                // persist recurring income using ';' separator
                 StreamWriter sw = new StreamWriter(PathStipendioData, true);
                 sw.WriteLine($"{inc.Name};{inc.Description};{inc.Date};{inc.Price};{inc.Recurring}");
                 sw.Close();
