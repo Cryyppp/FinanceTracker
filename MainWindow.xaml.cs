@@ -73,7 +73,7 @@ namespace FinanceTracker
                 foreach (var line in File.ReadAllLines(PathStipendioData))
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
-                    var data = line.Split(',');
+                    var data = line.Split(';');
                     if (data.Length >= 5 && bool.TryParse(data[4], out bool recurring) && recurring)
                     {
                         ListStipendio.Add(new Income(
@@ -126,7 +126,7 @@ namespace FinanceTracker
                 foreach (var stipendio in ListStipendio)
                 {
                     File.AppendAllText(PathStipendioData,
-                        $"{stipendio.Name},{stipendio.Description},{stipendio.Date},{stipendio.Price},{stipendio.Recurring}\n");
+                        $"{stipendio.Name};{stipendio.Description};{stipendio.Date};{stipendio.Price};{stipendio.Recurring}\n");
                 }
             }
             catch { }
@@ -351,7 +351,6 @@ namespace FinanceTracker
         {
             while (true)
             {
-
                 await Dispatcher.InvokeAsync(() =>
                 {
                     UpdateBal();
@@ -360,10 +359,7 @@ namespace FinanceTracker
                     CheckStipendio();
                     UpdateChart();
                 });
-
-
                 await CheckMonthlySpentAsync();
-
                 await Task.Delay(1000);
             }
         }
@@ -458,32 +454,42 @@ namespace FinanceTracker
         {
             ListNearRenewals.Clear();
             DateTime today = DateTime.Today;
+            bool anyChanges = false;
 
             foreach (var sub in ListSubscription)
             {
-                double days = (sub.Date - today).TotalDays;
-
-                if (days >= 0 && days <= 14)
+                while (sub.Date.Date <= today)
                 {
-                    if (sub.Date == today)
+                    DateTime renewalDate = sub.Date.Date;
+                    if (!ListExpenses.Any(e => e.Name == sub.Name && e.Date.Date == renewalDate && e.Price == sub.Price))
                     {
                         bal -= sub.Price;
-
-                        var renewalExpense = new Expense(sub.Name, sub.Description, today, sub.Price);
-                        if (!ListExpenses.Any(e => e.Name == renewalExpense.Name && e.Date == renewalExpense.Date && e.Price == renewalExpense.Price))
-                        {
-                            ListExpenses.Add(renewalExpense);
-                        }
-
-                        sub.Date = sub.Date.AddMonths(1);
-
-                        SaveActivitiesToFile();
-                        SaveSubscriptionsToFile();
-                        SaveUserData();
+                        var renewalExpense = new Expense(sub.Name, sub.Description, renewalDate, sub.Price);
+                        ListExpenses.Add(renewalExpense);
+                        anyChanges = true;
                     }
 
+                    sub.Date = sub.Date.AddMonths(1);
+                }
+
+                double daysToNext = (sub.Date.Date - today).TotalDays;
+                if (daysToNext >= 0 && daysToNext <= 14)
+                {
                     ListNearRenewals.Add(sub);
                 }
+            }
+
+            if (anyChanges)
+            {
+
+                SaveActivitiesToFile();
+                SaveSubscriptionsToFile();
+                SaveUserData();
+
+                RebuildTransactionList();
+                CheckMonthlySpent();
+                UpdateChart();
+                UpdateBal();
             }
         }
 
